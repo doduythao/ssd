@@ -1,0 +1,6 @@
+*.json
+__pycache__/
+*.pth.tar
+*.pth
+checkpoint*/
+.idea/
