@@ -2,7 +2,8 @@ import time
 import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
-from model512 import SSD512, MultiBoxLoss
+# from model512 import SSD512, MultiBoxLoss
+from model import SSD300, MultiBoxLoss
 from datasets import *
 from utils import *
 import argparse
@@ -35,7 +36,7 @@ def main():
     # Initialize model or load checkpoint
     if opt.checkpoint is None:
         start_epoch = 0
-        model = SSD512(n_classes=n_classes)
+        model = SSD300(n_classes=n_classes)
         biases = list()
         not_biases = list()
         for param_name, param in model.named_parameters():
