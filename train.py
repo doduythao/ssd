@@ -12,7 +12,7 @@ keep_difficult = True  # use objects considered difficult to detect?
 
 # Model parameters
 # Not too many here since the SSD300 has a very specific structure
-n_classes = len(label_map)  # number of different types of objects
+n_classes = len(voc_label_map)  # number of different types of objects
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Learning parameters
@@ -67,8 +67,7 @@ def main():
 
     # Custom dataloaders
     train_dataset = PascalVOCDataset(data_folder,
-                                     split='train',
-                                     keep_difficult=keep_difficult)
+                                     split='train')
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                                                collate_fn=train_dataset.collate_fn, num_workers=workers,
                                                pin_memory=True)  # note that we're passing the collate function here
@@ -94,7 +93,7 @@ def main():
               epoch=epoch)
 
         # Save checkpoint
-        save_checkpoint(epoch, model, optimizer)
+        save_checkpoint(epoch, model, optimizer, 'checkpoint300')
 
 
 def train(train_loader, model, criterion, optimizer, epoch):
@@ -116,7 +115,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
     start = time.time()
 
     # Batches
-    for i, (images, boxes, labels, _) in enumerate(train_loader):
+    for i, (images, boxes, labels) in enumerate(train_loader):
         data_time.update(time.time() - start)
 
         # Move to default device

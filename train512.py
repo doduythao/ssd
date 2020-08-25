@@ -3,12 +3,12 @@ import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
 from model512 import SSD512, MultiBoxLoss
-from datasets import PascalVOCDataset
+from datasets import *
 from utils import *
 import argparse
 
 # Model parameters
-n_classes = len(voc_label_map)  # number of different types of objects
+n_classes = len(coco_labels) + 1  # number of different types of objects
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Learning parameters
@@ -23,6 +23,7 @@ cudnn.benchmark = True
 
 
 def main():
+    print('Number of classes: ', n_classes)
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=str, default=None)
     parser.add_argument("--batch_size", type=int, default=8)
@@ -59,9 +60,8 @@ def main():
     criterion = MultiBoxLoss(priors_cxcy=model.priors_cxcy).to(device)
 
     # Custom dataloaders
-    train_dataset = PascalVOCDataset(opt.data_folder,
-                                     split='train',
-                                     dim=(512, 512))
+    # train_dataset = PascalVOCDataset(opt.data_folder, dim=(512, 512))
+    train_dataset = COCODataset(opt.data_folder, dim=(512, 512))
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, shuffle=True,
                                                collate_fn=train_dataset.collate_fn, num_workers=workers,
                                                pin_memory=True)
@@ -140,7 +140,8 @@ def train(train_loader, model, criterion, optimizer, epoch, grad_clip=None):
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'.format(epoch, i, len(train_loader),
                                                                   batch_time=batch_time,
                                                                   data_time=data_time, loss=losses))
-    del predicted_locs, predicted_scores, images, boxes, labels  # free some memory
+    del predicted_locs, predicted_scores, images, boxes, labels
+    # free some memory
 
 
 if __name__ == '__main__':

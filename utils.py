@@ -7,6 +7,12 @@ import torchvision.transforms.functional as FT
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Some constants
+MAX_KEPT_CHECKPOINTS = 10
+
+with open('coco.names') as f:
+    coco_labels = f.read().splitlines()
+
 # Label map
 voc_labels = ('aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable',
               'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor')
@@ -65,7 +71,6 @@ def create_data_lists(voc07_path, voc12_path, output_folder):
 
     # Training data
     for path in [voc07_path, voc12_path]:
-
         # Find IDs of images in training data
         with open(os.path.join(path, 'ImageSets/Main/trainval.txt')) as f:
             ids = f.read().splitlines()
@@ -142,23 +147,13 @@ def decimate(tensor, m):
 
 
 def xy_to_cxcy(xy):
-    """
-    Convert bb from boundary coordinates (x_min, y_min, x_max, y_max) to center-size coordinates (c_x, c_y, w, h).
-
-    :param xy: bounding boxes in boundary coordinates, a tensor of size (n_boxes, 4)
-    :return: bounding boxes in center-size coordinates, a tensor of size (n_boxes, 4)
-    """
+    # Convert bb from boundary coordinates (x_min, y_min, x_max, y_max) to center-size coordinates (c_x, c_y, w, h).
     return torch.cat([(xy[:, 2:] + xy[:, :2]) / 2,  # c_x, c_y
                       xy[:, 2:] - xy[:, :2]], 1)  # w, h
 
 
 def cxcy_to_xy(cxcy):
-    """
-    Convert bb from center-size coordinates (c_x, c_y, w, h) to boundary coordinates (x_min, y_min, x_max, y_max).
-
-    :param cxcy: bounding boxes in center-size coordinates, a tensor of size (n_boxes, 4)
-    :return: bounding boxes in boundary coordinates, a tensor of size (n_boxes, 4)
-    """
+    # Convert bb from center-size coordinates (c_x, c_y, w, h) to boundary coordinates (x_min, y_min, x_max, y_max).
     return torch.cat([cxcy[:, :2] - (cxcy[:, 2:] / 2),  # x_min, y_min
                       cxcy[:, :2] + (cxcy[:, 2:] / 2)], 1)  # x_max, y_max
 
@@ -245,16 +240,8 @@ def find_jaccard_overlap(set_1, set_2):
 # From https://github.com/amdegroot/ssd.pytorch/blob/master/utils/augmentations.py
 
 def expand(image, boxes, filler):
-    """
-    Perform a zooming out operation by placing the image in a larger canvas of filler material.
-
-    Helps to learn to detect smaller objects.
-
-    :param image: image, a tensor of dimensions (3, original_h, original_w)
-    :param boxes: bounding boxes in boundary coordinates, a tensor of dimensions (n_objects, 4)
-    :param filler: RBG values of the filler material, a list like [R, G, B]
-    :return: expanded image, updated bounding box coordinates
-    """
+    # Perform a zooming out operation by placing the image in a larger canvas of filler material.
+    # Helps to learn to detect smaller objects.
     # Calculate dimensions of proposed expanded (zoomed-out) image
     original_h = image.size(1)
     original_w = image.size(2)
@@ -277,8 +264,7 @@ def expand(image, boxes, filler):
     new_image[:, top:bottom, left:right] = image
 
     # Adjust bounding boxes' coordinates accordingly
-    new_boxes = boxes + torch.FloatTensor([left, top, left, top]).unsqueeze(
-        0)  # (n_objects, 4), n_objects is the no. of objects in this image
+    new_boxes = boxes + torch.FloatTensor([left, top, left, top]).unsqueeze(0)
 
     return new_image, new_boxes
 
@@ -380,18 +366,6 @@ def flip(image, boxes):
 
 
 def resize(image, boxes, dims=(300, 300), return_percent_coords=True):
-    """
-    Resize image. For the SSD300, resize to (300, 300).
-
-    Since percent/fractional coordinates are calculated for the bounding boxes (w.r.t image dimensions) in this process,
-    you may choose to retain them.
-
-    :param image: image, a PIL Image
-    :param boxes: bounding boxes in boundary coordinates, a tensor of dimensions (n_objects, 4)
-    :return: resized image, updated bounding box coordinates (or fractional coordinates, in which case they remain
-    the same)
-    """
-    # Resize image
     new_image = FT.resize(image, dims)
 
     # Resize bounding boxes
@@ -406,12 +380,6 @@ def resize(image, boxes, dims=(300, 300), return_percent_coords=True):
 
 
 def photometric_distort(image):
-    """
-    Distort brightness, contrast, saturation, and hue, each with a 50% chance, in random order.
-
-    :param image: image, a PIL Image
-    :return: distorted image
-    """
     new_image = image
 
     distortions = [FT.adjust_brightness,
@@ -480,41 +448,23 @@ def transform(image, boxes, labels, split, dim=(300, 300)):
 
 
 def adjust_learning_rate(optimizer, scale):
-    """
-    Scale learning rate by a specified factor.
-
-    :param optimizer: optimizer whose learning rate must be shrunk.
-    :param scale: factor to multiply learning rate with.
-    """
     for param_group in optimizer.param_groups:
         param_group['lr'] = param_group['lr'] * scale
     print("DECAYING learning rate.\n The new LR is %f\n" % (optimizer.param_groups[1]['lr'],))
 
 
-def accuracy(scores, targets, k):
-    """
-    Computes top-k accuracy, from predicted and true labels.
-
-    :param scores: scores from the model
-    :param targets: true labels
-    :param k: k in top-k accuracy
-    :return: top-k accuracy
-    """
-    batch_size = targets.size(0)
-    _, ind = scores.topk(k, 1, True, True)
-    correct = ind.eq(targets.view(-1, 1).expand_as(ind))
-    correct_total = correct.view(-1).float().sum()  # 0D tensor
-    return correct_total.item() * (100.0 / batch_size)
-
-
 def save_checkpoint(epoch, model, optimizer, save_path):
+    if not os.path.isdir(save_path):
+        os.makedirs(save_path)
+
     state = {'epoch': epoch,
              'model': model,
              'optimizer': optimizer}
     torch.save(state, os.path.join(save_path, 'cp_' + str(epoch) + '.pth'))
+
     cp_list = [f for f in os.listdir(save_path) if f[-4:] == '.pth']
     num_list = [int(f[3:-4]) for f in cp_list]
-    if len(num_list) > 5:
+    if len(num_list) > MAX_KEPT_CHECKPOINTS:
         os.remove(os.path.join(save_path, 'cp_' + str(min(num_list)) + '.pth'))
 
 
