@@ -59,8 +59,8 @@ def detect(image, min_score, max_overlap, top_k, suppress=None):
 
         # Boxes
         box_location = det_boxes[i].tolist()
-        draw.rectangle(xy=box_location, outline=label_color_map[det_labels[i]])
-        draw.rectangle(xy=[l + 1. for l in box_location], outline=label_color_map[det_labels[i]])
+        draw.rectangle(xy=box_location, outline=distinct_colors[det_labels[i]])
+        draw.rectangle(xy=[l + 1. for l in box_location], outline=distinct_colors[det_labels[i]])
         # a second rectangle at an offset of 1 pixel to increase line thickness
         # draw.rectangle(xy=[l + 2. for l in box_location], outline=label_color_map[
         #     det_labels[i]])  # a third rectangle at an offset of 1 pixel to increase line thickness
