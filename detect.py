@@ -38,7 +38,7 @@ def detect(image, min_score, max_overlap, top_k, suppress=None):
     det_boxes = det_boxes * original_dims
 
     # Decode class integer labels
-    det_labels = [rev_label_map[l] for l in det_labels[0].to('cpu').tolist()]
+    det_labels = [coco_labels[l-1] for l in det_labels[0].to('cpu').tolist()]
 
     # If no objects found, the detected labels will be set to ['0.'], i.e. ['background'] in SSD300.detect_objects()
     # in model.py
@@ -104,5 +104,5 @@ if __name__ == '__main__':
     original_image = Image.open(opt.img_path, mode='r')
     original_image = original_image.convert('RGB')
     img = normalize(to_tensor(resize(original_image)))
-    detect(img, min_score=0.2, max_overlap=0.5, top_k=200).save("../out.jpg", "JPEG", quality=100,
+    detect(img, min_score=0.5, max_overlap=0.5, top_k=200).save("../out.jpg", "JPEG", quality=100,
                                                                            optimize=True, progressive=True)

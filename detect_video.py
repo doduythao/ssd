@@ -73,7 +73,7 @@ def detect(original_image, min_score, max_overlap, top_k, suppress=None):
     inference_time = inference_end - inference_start
 
     # Decode class integer labels
-    det_labels = [rev_label_map[l] for l in det_labels[0].to('cpu').tolist()]
+    det_labels = [voc_rev_label_map[l] for l in det_labels[0].to('cpu').tolist()]
 
     # If no objects found, the detected labels will be set to ['0.'], i.e. ['background'] in SSD300.detect_objects()
     # in model.py

@@ -18,7 +18,7 @@ voc_labels = ('aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'c
               'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor')
 voc_label_map = {k: v + 1 for v, k in enumerate(voc_labels)}
 voc_label_map['background'] = 0
-rev_label_map = {v: k for k, v in voc_label_map.items()}  # Inverse mapping
+voc_rev_label_map = {v: k for k, v in voc_label_map.items()}  # Inverse mapping
 
 distinct_colors = ['#e6194b', '#3cb44b', '#ffe119', '#0082c8', '#f58231', '#911eb4', '#46f0f0', '#f032e6',
                    '#d2f53c', '#fabebe', '#008080', '#000080', '#aa6e28', '#fffac8', '#800000', '#aaffc3', '#808000',
