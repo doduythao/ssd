@@ -9,7 +9,7 @@ from utils import *
 import argparse
 
 # Model parameters
-n_classes = len(coco_labels) + 1  # number of different types of objects
+n_classes = len(coco_labels) # number of different types of objects
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Learning parameters
